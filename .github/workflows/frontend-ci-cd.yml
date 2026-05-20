@@ -107,7 +107,7 @@ jobs:
           S3_BUCKET="${{ secrets.FRONTEND_S3_BUCKET }}"
           if [ -z "$S3_BUCKET" ]; then
             echo "FRONTEND_S3_BUCKET secret not set. Querying AWS S3..."
-            S3_BUCKET=$(aws s3 ls | grep "starttech-frontend-${{ secrets.ENVIRONMENT || 'prod' }}" | awk '{print $3}' | head -n 1)
+            S3_BUCKET=$(aws s3 ls | grep "starttech-frontend-${{ secrets.ENVIRONMENT || 'prod' }}" | awk '{print $3}' | head -n 1 | xargs)
             echo "Resolved S3 Bucket: $S3_BUCKET"
           fi
 
@@ -132,11 +132,11 @@ jobs:
           if [ -z "$DIST_ID" ]; then
             echo "CLOUDFRONT_DISTRIBUTION_ID secret not set. Querying AWS CloudFront..."
             # Try searching by matching the regional S3 origin domain
-            DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, '$RESOLVED_S3_BUCKET')].Id" --output text | head -n 1)
+            DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, '$RESOLVED_S3_BUCKET')].Id" --output text | head -n 1 | xargs)
             
             # If not found or None, search by Comment or Origin ID containing starttech or S3-Frontend
             if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
-              DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Comment, 'starttech') || contains(Origins.Items[0].Id, 'S3-Frontend')].Id" --output text | head -n 1)
+              DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Comment, 'starttech') || contains(Origins.Items[0].Id, 'S3-Frontend')].Id" --output text | head -n 1 | xargs)
             fi
             echo "Resolved CloudFront Distribution ID: $DIST_ID"
           fi
