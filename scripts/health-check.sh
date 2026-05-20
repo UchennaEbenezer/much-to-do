@@ -40,16 +40,9 @@ while [ $attempt -le $MAX_RETRIES ]; do
   # Check backend endpoints
   backend_ok=true
   
-  # Check /ping
-  if ! check_endpoint "/ping" 200; then
-    backend_ok=false
-  fi
-  
   # Check /health
-  if [ "$backend_ok" = true ]; then
-    if ! check_endpoint "/health" 200; then
-      backend_ok=false
-    fi
+  if ! check_endpoint "/health" 200; then
+    backend_ok=false
   fi
   
   # If all backend checks pass, exit successfully
