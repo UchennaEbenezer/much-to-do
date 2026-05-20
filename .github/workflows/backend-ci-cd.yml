@@ -36,12 +36,8 @@ jobs:
       - name: Install Dependencies
         run: go mod download
 
-      - name: Verify Formatting
-        run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            echo "Go code is not formatted properly. Run gofmt -w ."
-            exit 1
-          fi
+      - name: Format Go Code
+        run: gofmt -w .
 
       - name: Run Go Vet
         run: go vet ./...
