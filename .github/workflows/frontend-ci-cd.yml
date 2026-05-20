@@ -103,12 +103,12 @@ jobs:
 
       - name: Deploy to S3 Bucket
         run: |
-          # Resolve S3 Bucket dynamically if FRONTEND_S3_BUCKET secret is not set
-          S3_BUCKET="${{ secrets.FRONTEND_S3_BUCKET }}"
+          # Clean secret input and strip any whitespace/carriage returns
+          S3_BUCKET=$(echo "${{ secrets.FRONTEND_S3_BUCKET }}" | tr -d '[:space:]')
           if [ -z "$S3_BUCKET" ]; then
             echo "FRONTEND_S3_BUCKET secret not set. Querying AWS S3..."
-            S3_BUCKET=$(aws s3 ls | grep "starttech-frontend-${{ secrets.ENVIRONMENT || 'prod' }}" | awk '{print $3}' | head -n 1 | xargs)
-            echo "Resolved S3 Bucket: $S3_BUCKET"
+            S3_BUCKET=$(aws s3 ls | grep "starttech-frontend-${{ secrets.ENVIRONMENT || 'prod' }}" | awk '{print $3}' | head -n 1 | tr -d '[:space:]')
+            echo "Resolved S3 Bucket: '$S3_BUCKET'"
           fi
 
           if [ -z "$S3_BUCKET" ]; then
@@ -120,25 +120,25 @@ jobs:
           echo "RESOLVED_S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
 
           # Sync build files to the React static hosting S3 bucket
-          aws s3 sync dist/ s3://$S3_BUCKET --delete --cache-control "max-age=31536000,public"
+          aws s3 sync dist/ "s3://${S3_BUCKET}" --delete --cache-control "max-age=31536000,public"
           
           # Force no-cache on index.html so updates are immediate
-          aws s3 cp dist/index.html s3://$S3_BUCKET/index.html --cache-control "no-cache,no-store,must-revalidate"
+          aws s3 cp dist/index.html "s3://${S3_BUCKET}/index.html" --cache-control "no-cache,no-store,must-revalidate"
 
       - name: Invalidate CloudFront Cache
         run: |
           # Resolve CloudFront Distribution ID dynamically if CLOUDFRONT_DISTRIBUTION_ID secret is not set
-          DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}"
+          DIST_ID=$(echo "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" | tr -d '[:space:]')
           if [ -z "$DIST_ID" ]; then
             echo "CLOUDFRONT_DISTRIBUTION_ID secret not set. Querying AWS CloudFront..."
             # Try searching by matching the regional S3 origin domain
-            DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, '$RESOLVED_S3_BUCKET')].Id" --output text | head -n 1 | xargs)
+            DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, '$RESOLVED_S3_BUCKET')].Id" --output text | head -n 1 | tr -d '[:space:]')
             
             # If not found or None, search by Comment or Origin ID containing starttech or S3-Frontend
             if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
-              DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Comment, 'starttech') || contains(Origins.Items[0].Id, 'S3-Frontend')].Id" --output text | head -n 1 | xargs)
+              DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Comment, 'starttech') || contains(Origins.Items[0].Id, 'S3-Frontend')].Id" --output text | head -n 1 | tr -d '[:space:]')
             fi
-            echo "Resolved CloudFront Distribution ID: $DIST_ID"
+            echo "Resolved CloudFront Distribution ID: '$DIST_ID'"
           fi
 
           if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
