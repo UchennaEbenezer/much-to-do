@@ -154,7 +154,7 @@ jobs:
         run: |
           if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
             curl -X POST -H 'Content-type: application/json' \
-              --data '{"text":"🚀 *StartTech Frontend Deployment Successful!* \nCF Invalidation triggered. Visit: http://${{ secrets.FRONTEND_DOMAIN || '\''S3 website'\'' }}"}' \
+              --data '{"text":"🚀 *StartTech Frontend Deployment Successful!* \nCF Invalidation triggered. Visit: http://${{ secrets.FRONTEND_DOMAIN || 'S3 website' }}"}' \
               ${{ secrets.SLACK_WEBHOOK_URL }}
           else
             echo "Deployment completed successfully. Notification skipped (no SLACK_WEBHOOK_URL secret)."
