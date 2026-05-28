@@ -84,7 +84,15 @@ jobs:
           # Clean secret input and strip any whitespace/carriage returns
           ECR_REPO=$(echo "${{ secrets.ECR_REPOSITORY }}" | tr -d '[:space:]')
           if [ -z "$ECR_REPO" ]; then
-            ECR_REPO="${{ steps.login-ecr.outputs.registry }}/starttech-backend-${{ secrets.ENVIRONMENT || 'prod' }}"
+            # Query the dynamically created ECR repository URL from SSM Parameter Store
+            ECR_REPO_SSM=$(aws ssm get-parameter --name "/starttech/backend/ecr_repository" --query "Parameter.Value" --output text 2>/dev/null || echo "")
+            if [ -n "$ECR_REPO_SSM" ] && [ "$ECR_REPO_SSM" != "None" ]; then
+              ECR_REPO="$ECR_REPO_SSM"
+              echo "Resolved dynamic ECR repository from SSM: $ECR_REPO"
+            else
+              ECR_REPO="${{ steps.login-ecr.outputs.registry }}/starttech-backend-${{ secrets.ENVIRONMENT || 'prod' }}"
+              echo "SSM parameter not found, falling back to default: $ECR_REPO"
+            fi
           fi
           echo "ECR_REPO=$ECR_REPO" >> $GITHUB_ENV
 
