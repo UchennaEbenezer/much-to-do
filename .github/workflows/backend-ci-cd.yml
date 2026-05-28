@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - master
       - feature/full-stack
     paths:
       - 'backend/**'
@@ -11,6 +12,7 @@ on:
   pull_request:
     branches:
       - main
+      - master
       - feature/full-stack
     paths:
       - 'backend/**'
@@ -60,7 +62,7 @@ jobs:
   build-and-push:
     name: Build & ECR Push
     needs: test-and-scan
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/full-stack') && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/full-stack') && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -124,7 +126,7 @@ jobs:
   deploy:
     name: Auto Scaling Group Rolling Deploy
     needs: build-and-push
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/full-stack') && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/full-stack') && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code

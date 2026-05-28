@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - master
       - feature/full-stack
     paths:
       - 'frontend/**'
@@ -11,6 +12,7 @@ on:
   pull_request:
     branches:
       - main
+      - master
       - feature/full-stack
     paths:
       - 'frontend/**'
@@ -74,7 +76,7 @@ jobs:
         run: npm run build
 
       - name: Upload Build Artifacts
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/full-stack'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/full-stack'
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
@@ -84,7 +86,7 @@ jobs:
   deploy:
     name: Deploy to Production
     needs: build-and-test
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/full-stack') && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/full-stack') && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
