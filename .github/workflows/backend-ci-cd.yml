@@ -191,8 +191,9 @@ jobs:
 
       - name: Run Post-Deploy Smoke Test & Health Check
         run: |
-          ALB_DNS=$(aws elbv2 describe-load-balancers --region ${{ secrets.AWS_REGION || 'us-east-1' }} --query "LoadBalancers[?contains(LoadBalancerName, 'techcorp-backend-alb')].DNSName" --output text 2>/dev/null | tr -d '\r\n' || echo "")
-          if [ -z "$ALB_DNS" ]; then
+          AWS_REGION_CLEAN=$(echo "${{ secrets.AWS_REGION || 'us-east-1' }}" | tr -d '[:space:]')
+          ALB_DNS=$(aws elbv2 describe-load-balancers --region "$AWS_REGION_CLEAN" --output json 2>/dev/null | jq -r '.LoadBalancers[] | select(.LoadBalancerName | contains("techcorp-backend-alb")) | .DNSName' | head -n 1 | tr -d '[:space:]')
+          if [ -z "$ALB_DNS" ] || [ "$ALB_DNS" = "null" ]; then
             echo "ALB not provisioned or access issues. Skipping live smoke tests."
             exit 0
           fi
