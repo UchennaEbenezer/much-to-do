@@ -191,17 +191,51 @@ jobs:
 
       - name: Run Post-Deploy Smoke Test & Health Check
         run: |
-          # Fetch ALB DNS Name dynamically by name prefix to support dynamic suffixes
           ALB_DNS=$(aws elbv2 describe-load-balancers --region ${{ secrets.AWS_REGION || 'us-east-1' }} --query "LoadBalancers[?contains(LoadBalancerName, 'techcorp-backend-alb')].DNSName" --output text 2>/dev/null | tr -d '\r\n' || echo "")
-          if [ -n "$ALB_DNS" ]; then
-            echo "Running health checks against ALB: http://$ALB_DNS/health"
-            # Convert CRLF to LF in case of Windows line endings in git checkout
-            sed -i 's/\r$//' scripts/health-check.sh
-            chmod +x scripts/health-check.sh
-            ./scripts/health-check.sh "http://$ALB_DNS" 12 30
-          else
+          if [ -z "$ALB_DNS" ]; then
             echo "ALB not provisioned or access issues. Skipping live smoke tests."
+            exit 0
           fi
+          
+          URL="http://$ALB_DNS/health"
+          echo "=================================================="
+          echo " Starting Smoke Tests & Health Checks "
+          echo " Target URL: $URL"
+          echo "=================================================="
+          
+          attempt=1
+          max_attempts=12
+          delay=30
+          
+          while [ $attempt -le $max_attempts ]; do
+            echo "--- Attempt $attempt of $max_attempts ---"
+            echo "Checking $URL ... "
+            
+            # Curl the endpoint and capture HTTP status code
+            status_code=$(curl -s -o /tmp/resp.txt -w "%{http_code}" "$URL" || echo "000")
+            status_code=$(echo "$status_code" | tr -d '\r\n[:space:]')
+            
+            if [ "$status_code" = "200" ]; then
+              echo "SUCCESS (HTTP 200)"
+              if [ -f /tmp/resp.txt ]; then cat /tmp/resp.txt; fi
+              echo ""
+              echo "=================================================="
+              echo " Health Check Passed! Application is healthy. "
+              echo "=================================================="
+              exit 0
+            else
+              echo "FAILED (HTTP $status_code)"
+            fi
+            
+            echo "Application not fully ready yet. Sleeping for ${delay}s..."
+            sleep $delay
+            attempt=$((attempt + 1))
+          done
+          
+          echo "=================================================="
+          echo " ERROR: Health Check Timed Out after $max_attempts attempts! "
+          echo "=================================================="
+          exit 1
 
       - name: Send Deployment Status Notification
         if: always()
