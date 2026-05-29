@@ -191,8 +191,8 @@ jobs:
 
       - name: Run Post-Deploy Smoke Test & Health Check
         run: |
-          # Fetch ALB DNS Name
-          ALB_DNS=$(aws elbv2 describe-load-balancers --names "techcorp-backend-alb" --region ${{ secrets.AWS_REGION || 'us-east-1' }} --query "LoadBalancers[0].DNSName" --output text 2>/dev/null | tr -d '\r\n' || echo "")
+          # Fetch ALB DNS Name dynamically by name prefix to support dynamic suffixes
+          ALB_DNS=$(aws elbv2 describe-load-balancers --region ${{ secrets.AWS_REGION || 'us-east-1' }} --query "LoadBalancers[?contains(LoadBalancerName, 'techcorp-backend-alb')].DNSName" --output text 2>/dev/null | tr -d '\r\n' || echo "")
           if [ -n "$ALB_DNS" ]; then
             echo "Running health checks against ALB: http://$ALB_DNS/health"
             # Convert CRLF to LF in case of Windows line endings in git checkout

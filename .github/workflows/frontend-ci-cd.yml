@@ -62,8 +62,8 @@ jobs:
             echo "[default]" > ~/.aws/credentials
             echo "aws_access_key_id = ${{ secrets.AWS_ACCESS_KEY_ID }}" >> ~/.aws/credentials
             echo "aws_secret_access_key = ${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> ~/.aws/credentials
-            # Query ALB DNS Name
-            ALB_DNS=$(aws elbv2 describe-load-balancers --names "techcorp-backend-alb" --region ${{ secrets.AWS_REGION || 'us-east-1' }} --query "LoadBalancers[0].DNSName" --output text 2>/dev/null || echo "localhost:8080")
+            # Query ALB DNS Name dynamically by name prefix to support dynamic suffixes
+            ALB_DNS=$(aws elbv2 describe-load-balancers --region ${{ secrets.AWS_REGION || 'us-east-1' }} --query "LoadBalancers[?contains(LoadBalancerName, 'techcorp-backend-alb')].DNSName" --output text 2>/dev/null | tr -d '\r\n' || echo "localhost:8080")
             echo "api_url=http://${ALB_DNS}" >> $GITHUB_OUTPUT
           else
             echo "AWS Credentials/Secret not set. Falling back to default backend URL."
