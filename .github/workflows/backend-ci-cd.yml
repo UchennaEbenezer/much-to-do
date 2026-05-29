@@ -164,6 +164,19 @@ jobs:
             ASG_NAME=${{ secrets.AUTO_SCALING_GROUP_NAME }}
           fi
           
+          # Check if there is an active instance refresh
+          ACTIVE_REFRESH=$(aws autoscaling describe-instance-refreshes \
+            --auto-scaling-group-name "$ASG_NAME" \
+            --query "InstanceRefreshes[?Status=='InProgress'].InstanceRefreshId" \
+            --output text 2>/dev/null || echo "")
+          if [ -n "$ACTIVE_REFRESH" ] && [ "$ACTIVE_REFRESH" != "None" ]; then
+            echo "An active instance refresh ($ACTIVE_REFRESH) is in progress. Canceling it..."
+            aws autoscaling cancel-instance-refresh \
+              --auto-scaling-group-name "$ASG_NAME" 2>/dev/null || true
+            echo "Waiting 15 seconds for cancellation to propagate..."
+            sleep 15
+          fi
+          
           echo "Starting Instance Refresh for ASG: $ASG_NAME"
           
           # Start instance refresh (rolling update)
