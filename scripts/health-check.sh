@@ -18,12 +18,16 @@ check_endpoint() {
   local url="${BASE_URL}${endpoint}"
   
   echo -n "Checking $url ... "
-  response=$(curl -s -w "%{http_code}" -o /tmp/resp.txt "$url")
-  status_code=${response: -3}
+  response=$(curl -s -w "%{http_code}" -o /tmp/resp.txt "$url" || echo "000")
+  status_code=$(echo "$response" | tr -d '\r\n[:space:]')
+  
+  if ! [[ "$status_code" =~ ^[0-9]+$ ]]; then
+    status_code="000"
+  fi
   
   if [ "$status_code" -eq "$expected_status" ]; then
     echo "SUCCESS (HTTP $status_code)"
-    cat /tmp/resp.txt
+    if [ -f /tmp/resp.txt ]; then cat /tmp/resp.txt; fi
     echo ""
     return 0
   else

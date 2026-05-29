@@ -179,12 +179,13 @@ jobs:
       - name: Run Post-Deploy Smoke Test & Health Check
         run: |
           # Fetch ALB DNS Name
-          ALB_DNS=$(aws elbv2 describe-load-balancers --names "techcorp-backend-alb" --region ${{ secrets.AWS_REGION || 'us-east-1' }} --query "LoadBalancers[0].DNSName" --output text 2>/dev/null || echo "")
+          ALB_DNS=$(aws elbv2 describe-load-balancers --names "techcorp-backend-alb" --region ${{ secrets.AWS_REGION || 'us-east-1' }} --query "LoadBalancers[0].DNSName" --output text 2>/dev/null | tr -d '\r\n' || echo "")
           if [ -n "$ALB_DNS" ]; then
             echo "Running health checks against ALB: http://$ALB_DNS/health"
-            # Wait for instances to roll and run the health check loop
+            # Convert CRLF to LF in case of Windows line endings in git checkout
+            sed -i 's/\r$//' scripts/health-check.sh
             chmod +x scripts/health-check.sh
-            ./scripts/health-check.sh "http://$ALB_DNS" 10 30
+            ./scripts/health-check.sh "http://$ALB_DNS" 12 30
           else
             echo "ALB not provisioned or access issues. Skipping live smoke tests."
           fi
